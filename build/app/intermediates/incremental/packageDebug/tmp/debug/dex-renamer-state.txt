@@ -1,0 +1,4 @@
+#Sun Oct 15 21:10:52 PDT 2023
+base.0=/Users/vpenumarti/Desktop/CS/Personal/Sched_Me/build/app/intermediates/dex/debug/mergeDexDebug/classes.dex
+path.0=classes.dex
+renamed.0=classes.dex
