@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 
 export function Settings () {
     return (
-        <View>
+        <View style={{paddingTop: 70}}>
             <Text>This is the Settings page.</Text>
         </View>
     );
