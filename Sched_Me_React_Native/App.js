@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Button } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useState } from 'react';
 import { Cal } from './components/Calendar';
 import { Classes } from './components/Classes';
@@ -8,15 +8,29 @@ import { Sharing } from './components/Sharing';
 import { Settings } from './components/Settings';
 
 export default function App() {
-  const [selected, setSelected] = useState('');
+  const [classes, setClasses] = useState([{}]);
+  const [selectedPage, setSelectedPage] = useState('Calendar');
+
+  const Navigate = () => {
+    if(selectedPage === "Calendar") {
+      return <Cal setClasses={setClasses} />
+    }
+    else if(selectedPage === "Classes") {
+      return <Classes classes={classes} />
+    }
+    else if(selectedPage === "Sharing") {
+      return <Sharing />
+    }
+    else {
+      return <Settings />
+    }
+  };
 
   return (
     <View style={styles.container}>
-      <Cal selected={selected} setSelected={setSelected}/>
-      <Classes />
-      <Navigation />
-      <Sharing />
-      <Settings />
+      {/* <Cal setClasses={setClasses} /> */}
+      <Navigate />
+      <Navigation setSelectedPage={setSelectedPage}/>
       <StatusBar style="auto" />
     </View>
   );
@@ -27,6 +41,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
   },
 });

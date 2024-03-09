@@ -4,12 +4,20 @@ import { ScrollView, StyleSheet, Text, View, Dimensions, TouchableOpacity, Butto
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Checkbox } from 'react-native-paper';
 
-export function Cal({ selected, setSelected }) {
+export function Cal({ setClasses }) {
     const [events, setEvents] = useState({});
+    const [selected, setSelected] = useState('');
     const window = Dimensions.get('window');
     const screenWidth = window.width;
 
-    const addEvents = (date, eventName, startTime, endTime, loc, isAllDay) => {
+    const add = (date, eventName, startTime, endTime, loc, isAllDay, isClass) => {
+        if(isClass) {
+            addClasses(date, eventName, startTime, endTime, loc, isAllDay);
+        }
+        addEvents(date, eventName, startTime, endTime, loc, isAllDay, isClass);
+    };
+
+    const addEvents = (date, eventName, startTime, endTime, loc, isAllDay, isClass) => {
         setEvents(prevState => ({
             ...prevState,
             [date]: [
@@ -19,10 +27,25 @@ export function Cal({ selected, setSelected }) {
                     start: startTime,
                     finish: endTime,
                     location: loc,
-                    allDay: isAllDay
+                    allDay: isAllDay,
+                    class: isClass
                 },
             ],
         }));
+    };
+
+    const addClasses = (date, eventName, startTime, endTime, loc, isAllDay) => {
+        setClasses(prevState => [
+            ...prevState,
+            {
+                date: date,
+                name: eventName,
+                start: startTime,
+                finish: endTime,
+                location: loc,
+                allDay: isAllDay,
+            }
+        ]);
     };
     
     return (
@@ -34,14 +57,12 @@ export function Cal({ selected, setSelected }) {
           }}
           onDayPress={day => {
             setSelected(day.dateString);
-            // console.log(day.dateString)
-            // addEvents(day.dateString, 'Event Name', day.dateString);
           }}
           markedDates={{
             [selected]: {selected: true, disableTouchEvent: true, selectedDotColor: 'orange'}
           }}
         />
-        <AddButton addEvents={addEvents}/>
+        <AddButton add={add} />
         <ScrollView style={{height: 350}}>
             {events[selected] && events[selected].map((detail, index) => (
                 <EventCard 
@@ -58,7 +79,7 @@ export function Cal({ selected, setSelected }) {
     );
 }
 
-function AddButton({ addEvents }) {
+function AddButton({ add }) {
     const [modalVisible, setModalVisible] = useState(false);
     const [eventName, setEventName] = useState('');
     const [location, setLocation] = useState('');
@@ -67,24 +88,14 @@ function AddButton({ addEvents }) {
     const [endDate, setEndDate] = useState(new Date());
     const [isAllDay, setIsAllDay] = useState(false);
     const [dateOrTime, setDateOrTime] = useState('datetime');
-    const [isRecurring, setIsRecurring] = useState(false); // FIXME: finish this
     const [isClass, setIsClass] = useState(false); // FIXME: finish this
+    const [isRecurring, setIsRecurring] = useState(false); // FIXME: finish this
 
     const difference = endDate.getTime() - startDate.getTime();
     const daysApart = Math.round(difference / (1000 * 60 * 60 * 24));
 
-    const handleMultipleDays = () => {
+    const resetVars = () => {
         setModalVisible(!modalVisible);
-        const oneDay = 24 * 60 * 60 * 1000;
-        let newDate = new Date(startDate.getTime() - oneDay);
-
-        for(let i = daysApart; i > 0; i--) {
-            addEvents(formatDate(newDate), eventName, formatTime(startDate), formatTime(endDate), location, isAllDay);
-            console.log(newDate);
-            newDate = new Date(newDate.getTime() + oneDay);
-        }
-        addEvents(formatDate(newDate), eventName, formatTime(startDate), formatTime(endDate), location, isAllDay);
-
         setEventName('');
         setLocation('');
         setNotes('');
@@ -93,6 +104,24 @@ function AddButton({ addEvents }) {
         setIsAllDay(false);
         setDateOrTime('datetime');
         setIsRecurring(false);    
+        setIsClass(false);
+    };
+
+    const handleMultipleDays = () => {
+
+        const oneDay = 24 * 60 * 60 * 1000;
+        // let newDate = new Date(startDate.getTime() - oneDay);
+        let newDate = new Date(startDate.getTime());
+
+        for(let i = daysApart; i > 0; i--) {
+            add(formatDate(newDate), eventName, formatTime(startDate), formatTime(endDate), location, isAllDay, isClass);
+            console.log(newDate);
+            newDate = new Date(newDate.getTime());
+            // newDate = new Date(newDate.getTime() + oneDay);
+        }
+        add(formatDate(newDate), eventName, formatTime(startDate), formatTime(endDate), location, isAllDay, isClass);
+
+        resetVars();
     };
 
     const renderComponent = () => {
@@ -143,18 +172,12 @@ function AddButton({ addEvents }) {
     };
 
     const handleSubmit = () => {
-        setModalVisible(!modalVisible);
         const oneDay = 24 * 60 * 60 * 1000;
-        const newDate = new Date(startDate.getTime() - oneDay);
-        addEvents(formatDate(newDate), eventName, formatTime(startDate), formatTime(endDate), location, isAllDay);
-        setEventName('');
-        setLocation('');
-        setNotes('');
-        setStartDate(new Date());
-        setEndDate(new Date());
-        setIsAllDay(false);
-        setDateOrTime('datetime');
-        setIsRecurring(false);
+        // const newDate = new Date(startDate.getTime() + oneDay);
+        const newDate = new Date(startDate.getTime());
+        add(formatDate(newDate), eventName, formatTime(startDate), formatTime(endDate), location, isAllDay, isClass);
+
+        resetVars();
     };
 
     return (
@@ -173,96 +196,93 @@ function AddButton({ addEvents }) {
                 }}
             >
                 <View style={styles.centeredView}>
-                <View style={styles.modalView}>
-                    <Text style={{textAlign: 'center', marginBottom: 20, fontSize: 20}}>{eventName === '' ? 'Name' : eventName}</Text>
-                    <Text style={styles.modalText}>Enter Event Information Below</Text>
-                    <TextInput
-                        style={styles.input}
-                        onChangeText={setEventName}
-                        value={eventName}
-                        placeholder="Event Name"
-                        keyboardType="default"
-                    />
-                    <TextInput
-                        style={styles.input}
-                        onChangeText={setLocation}
-                        value={location}
-                        placeholder="Location"
-                        keyboardType="default"
-                    />
-                    <View style={{flexDirection: 'row', padding: 5}}>
-                        <Text style={{marginTop: 10, paddingRight: 10}}>Is the event all day?</Text>
-                        <Checkbox
-                            status={isAllDay ? 'checked' : 'unchecked'}
-                            onPress={() => {
-                                setIsAllDay(!isAllDay);
-                                handleClick();
-                            }}
-                            borderWidth='1'
-                            borderRadius='1'
-                        />
+                    <View style={styles.modalView}>
+                    <View style={{flexDirection: 'row', justifyContent: 'flex-end', width: '70%'}}>
+                        <TouchableOpacity onPress={resetVars}>
+                            <Text style={{color: "red", textAlign: "right", fontSize: 20}}>X</Text>
+                        </TouchableOpacity>
                     </View>
-                    <Text style={{fontSize: 20}}>Start</Text>
-                    <DateTimePicker 
-                        value={startDate}
-                        mode={dateOrTime}
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                            const currentDate = selectedDate || startDate;
-                            setStartDate(currentDate);
-                        }}
-                    />
-                    <Text style={{fontSize: 20, paddingTop: 10}}>Finish</Text>
-                    <DateTimePicker
-                        value={endDate}
-                        mode={dateOrTime}
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                            const currentDate = selectedDate || endDate;
-                            setEndDate(currentDate);
-                        }}
-                    />    
-                    <View style={{flexDirection: 'row', padding: 5}}>
-                        <Text style={{marginTop: 10, paddingRight: 10}}>Is the event recurring?</Text>
-                        <Checkbox
-                            status={isRecurring ? 'checked' : 'unchecked'}
-                            onPress={() => {
-                                setIsRecurring(!isRecurring);
-                                handleRecurClick();
-                            }}
-                            borderWidth='1'
-                            borderRadius='1'
+                        <Text style={{textAlign: 'center', marginBottom: 20, fontSize: 20}}>{eventName === '' ? 'Name' : eventName}</Text>
+                        <Text style={styles.modalText}>Enter Event Information Below</Text>
+                        <TextInput
+                            style={styles.input}
+                            onChangeText={setEventName}
+                            value={eventName}
+                            placeholder="Event Name"
+                            keyboardType="default"
                         />
-                    </View>  
-                    <View style={{flexDirection: 'row', padding: 5}}>
-                        <Text style={{marginTop: 10, paddingRight: 10}}>Is the event a class?</Text>
-                        <Checkbox
-                            status={isClass ? 'checked' : 'unchecked'}
-                            onPress={() => {
-                                setIsClass(!isClass);
-                                handleClassClick();
-                            }}
-                            borderWidth='1'
-                            borderRadius='1'
+                        <TextInput
+                            style={styles.input}
+                            onChangeText={setLocation}
+                            value={location}
+                            placeholder="Location"
+                            keyboardType="default"
                         />
+                        <View style={{flexDirection: 'row', padding: 5}}>
+                            <Text style={{marginTop: 10, paddingRight: 10}}>Is the event all day?</Text>
+                            <Checkbox
+                                status={isAllDay ? 'checked' : 'unchecked'}
+                                onPress={() => {
+                                    setIsAllDay(!isAllDay);
+                                    handleClick();
+                                }}
+                                borderWidth='1'
+                                borderRadius='1'
+                            />
+                        </View>
+                        <Text style={{fontSize: 20}}>Start</Text>
+                        <DateTimePicker 
+                            value={startDate}
+                            mode={dateOrTime}
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                                const currentDate = selectedDate || startDate;
+                                setStartDate(currentDate);
+                            }}
+                        />
+                        <Text style={{fontSize: 20, paddingTop: 10}}>Finish</Text>
+                        <DateTimePicker
+                            value={endDate}
+                            mode={dateOrTime}
+                            display="default"
+                            onChange={(event, selectedDate) => {
+                                const currentDate = selectedDate || endDate;
+                                setEndDate(currentDate);
+                            }}
+                        />    
+                        <View style={{flexDirection: 'row', padding: 5}}>
+                            <Text style={{marginTop: 10, paddingRight: 10}}>Is the event recurring?</Text>
+                            <Checkbox
+                                status={isRecurring ? 'checked' : 'unchecked'}
+                                onPress={() => {
+                                    setIsRecurring(!isRecurring);
+                                    handleRecurClick();
+                                }}
+                                borderWidth='1'
+                                borderRadius='1'
+                            />
+                        </View>  
+                        <View style={{flexDirection: 'row', padding: 5}}>
+                            <Text style={{marginTop: 10, paddingRight: 10}}>Is the event a class?</Text>
+                            <Checkbox
+                                status={isClass ? 'checked' : 'unchecked'}
+                                onPress={() => {
+                                    setIsClass(!isClass);
+                                    handleClassClick();
+                                }}
+                                borderWidth='1'
+                                borderRadius='1'
+                            />
+                        </View>
+                        <TextInput
+                            style={styles.input}
+                            onChangeText={setNotes}
+                            value={notes}
+                            placeholder="Notes"
+                            keyboardType="default"
+                        />       
+                        {renderComponent()}
                     </View>
-                    <TextInput
-                        style={styles.input}
-                        onChangeText={setNotes}
-                        value={notes}
-                        placeholder="Notes"
-                        keyboardType="default"
-                    />       
-                    {/* {daysApart < 0 ? 
-                        <Text style={{color: "grey", fontSize: 18}}>Submit</Text>
-                    :
-                        <Button
-                            title="Submit"
-                            onPress={handleSubmit}
-                        />
-                    } */}
-                    {renderComponent()}
-                </View>
                 </View>
             </Modal>
         </View>
@@ -293,7 +313,6 @@ function EventCard({ name, start, finish, location, allDay }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        marginBottom: 100,
     },
     eventCard: {
         borderRadius: 5,
