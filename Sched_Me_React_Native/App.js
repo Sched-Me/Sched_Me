@@ -1,10 +1,22 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View, Button } from 'react-native';
+import { useState } from 'react';
+import { Cal } from './components/Calendar';
+import { Classes } from './components/Classes';
+import { Navigation } from './components/Navigation';
+import { Sharing } from './components/Sharing';
+import { Settings } from './components/Settings';
 
 export default function App() {
+  const [selected, setSelected] = useState('');
+
   return (
     <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
+      <Cal selected={selected} setSelected={setSelected}/>
+      <Classes />
+      <Navigation />
+      <Sharing />
+      <Settings />
       <StatusBar style="auto" />
     </View>
   );
